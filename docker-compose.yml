@@ -2,28 +2,28 @@ version: "3.8"
 
 services:
 
-  my-sba-iot-train:
+  my-sba-iot-hrv:
     image: openjdk:17-jdk-alpine
-    container_name: mysbaimage-iot-train
+    container_name: mysbaimage-iot-hrv
     ports:
-      - 8081:8080
-      - 8001:8000
+      - 8082:8080
+      - 8002:8000
     expose:
-      - "8001"
+      - "8002"
     depends_on:
-      - my-db-iot-train
+      - my-db-iot-hrv
     networks:
       - my-net-iot
     volumes:
       - ./build/libs/IoTDigitalTwin-0.0.1-SNAPSHOT.jar:/app/app.jar
     working_dir: /app
     entrypoint: java -Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000 -jar /app/app.jar
-  my-db-iot-train:
+  my-db-iot-hrv:
     image: mongo:5.0
-    container_name: mongodbimage-iot-train
+    container_name: mongodbimage-iot-hrv
     ports:
-      - 27018:27018
-    command: ["mongod", "--port", "27018"]
+      - 27019:27019
+    command: ["mongod", "--port", "27019"]
     networks:
       - my-net-iot
 networks:

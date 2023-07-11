@@ -42,7 +42,7 @@ public class HRVRestController {
                 // Esegui le operazioni del metodo solo se l'autenticazione è valida
 
                 // Esempio: Controlla se l'utente ha il ruolo necessario per eseguire questa operazione
-                if (roleResponse.getRole().equals("COACH")) {
+                if (roleResponse.getRole().equals("AMMINISTRATORE")) {
 
                     HRV hrv = new HRV();
 

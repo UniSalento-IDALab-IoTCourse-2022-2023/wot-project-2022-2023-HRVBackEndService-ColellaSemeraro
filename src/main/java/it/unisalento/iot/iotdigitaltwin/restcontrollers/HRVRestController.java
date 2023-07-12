@@ -4,6 +4,7 @@ import it.unisalento.iot.iotdigitaltwin.domain.HRV;
 import it.unisalento.iot.iotdigitaltwin.dto.HRVDTO;
 import it.unisalento.iot.iotdigitaltwin.repositories.HRVRepository;
 import it.unisalento.iot.iotdigitaltwin.service.APICalls;
+import it.unisalento.iot.iotdigitaltwin.service.RichiestaUsernameAtleti;
 import it.unisalento.iot.iotdigitaltwin.service.RoleResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,6 +150,53 @@ public class HRVRestController {
             }
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso negato");
+    }
+
+    @PostMapping(value = "/findAllByAtleti", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public List<HRVDTO> getAllByAtleti(HttpServletRequest request, @RequestBody RichiestaUsernameAtleti richiestaUsernameAtleti) {
+
+        String authorizationHeader = request.getHeader("Authorization");
+
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String jwt = authorizationHeader.substring(7);
+            RoleResponse roleResponse = getRoleResponse(jwt);
+
+            // Verifica se l'autenticazione è valida
+            if (roleResponse != null && !Objects.equals(roleResponse.getRole(), "Authentication failed")) {
+                // Esegui le operazioni del metodo solo se l'autenticazione è valida
+
+                // Esempio: Controlla se l'utente ha il ruolo necessario per eseguire questa operazione
+                if (roleResponse.getRole().equals("COACH") || roleResponse.getRole().equals("ATLETA")) {
+
+                    List<HRVDTO> hrvdtos = new ArrayList<>();
+
+                    for(String usernameAtleta: richiestaUsernameAtleti.getUsernameAtleti()) {
+                        for(HRV hrv : hrvRepository.findAllByUsernameAtleta(usernameAtleta)) {
+
+                            HRVDTO hrvdto = new HRVDTO();
+
+                            hrvdto.setId(hrv.getId());
+                            hrvdto.setData(hrv.getData());
+                            hrvdto.setUsernameAtleta(hrv.getUsernameAtleta());
+                            hrvdto.setMedian_nni(hrv.getMedian_nni());
+                            hrvdto.setValorePredetto(hrv.getValorePredetto());
+
+                            hrvdtos.add(hrvdto);
+
+                        }
+                    }
+
+                    return hrvdtos;
+
+                } else {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso negato");
+                }
+            }else {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticazione fallita");
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso negato");
+
     }
 
     private RoleResponse getRoleResponse(String jwt) {

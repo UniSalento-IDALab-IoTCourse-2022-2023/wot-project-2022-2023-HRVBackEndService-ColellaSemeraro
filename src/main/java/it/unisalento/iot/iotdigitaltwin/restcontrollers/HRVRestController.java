@@ -4,15 +4,18 @@ import it.unisalento.iot.iotdigitaltwin.domain.HRV;
 import it.unisalento.iot.iotdigitaltwin.dto.HRVDTO;
 import it.unisalento.iot.iotdigitaltwin.repositories.HRVRepository;
 import it.unisalento.iot.iotdigitaltwin.service.APICalls;
+import it.unisalento.iot.iotdigitaltwin.service.RichiestaHRV;
 import it.unisalento.iot.iotdigitaltwin.service.RichiestaUsernameAtleti;
 import it.unisalento.iot.iotdigitaltwin.service.RoleResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -197,6 +200,53 @@ public class HRVRestController {
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso negato");
 
+    }
+
+    @RequestMapping(value = "/downloadCsv", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public void downloadCsv(HttpServletRequest request, HttpServletResponse response, @RequestBody RichiestaHRV hrvList) throws IOException {
+
+        String authorizationHeader = request.getHeader("Authorization");
+
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String jwt = authorizationHeader.substring(7);
+            RoleResponse roleResponse = getRoleResponse(jwt);
+
+            // Verifica se l'autenticazione è valida
+            if (roleResponse != null && !Objects.equals(roleResponse.getRole(), "Authentication failed")) {
+                // Esegui le operazioni del metodo solo se l'autenticazione è valida
+
+                // Esempio: Controlla se l'utente ha il ruolo necessario per eseguire questa operazione
+                if (roleResponse.getRole().equals("COACH") || roleResponse.getRole().equals("ATLETA")) {
+
+                    // Genera il contenuto del file CSV
+                    StringBuilder csvContent = new StringBuilder();
+                    csvContent.append("Atleta,Median_nni,Intensità,Data\n");
+                    for (HRVDTO hrv : hrvList.getLista_hrv()) {
+                        String intensita;
+                        if(hrv.getValorePredetto() == 0)
+                            intensita = "Medio/Bassa";
+                        else intensita = "Alta";
+                        csvContent.append(hrv.getUsernameAtleta()).append(",")
+                                .append(hrv.getMedian_nni()).append(",")
+                                .append(intensita).append(",")
+                                .append(hrv.getData()).append("\n");
+                    }
+
+                    // Imposta l'header della risposta per il download del file
+                    response.setContentType("text/csv");
+                    response.setHeader("Content-Disposition", "attachment; filename=hrv_list.csv");
+
+                    // Scrivi il contenuto del file CSV nella risposta
+                    response.getWriter().write(csvContent.toString());
+                } else {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso negato");
+                }
+            } else {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticazione fallita");
+            }
+        } else {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticazione fallita");
+        }
     }
 
     private RoleResponse getRoleResponse(String jwt) {
